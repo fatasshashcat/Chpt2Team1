@@ -17,7 +17,7 @@ to setup
   set prison-region patches with [pxcor > min-pxcor + 25 and pxcor < max-pxcor - 0 and pycor > min-pycor + 25 and pycor < max-pycor - 0]
   set restaurant-region patches with [pxcor > min-pxcor + 0 and pxcor < max-pxcor - 25 and pycor > min-pycor + 0 and pycor < max-pycor - 25]
   ask prison-region [ set pcolor yellow ]
-  ask restaurant-region [ set color green ]
+  ask restaurant-region [ set pcolor green ]
   create-cops cop-amount [
     setxy random-xcor random-ycor
     set shape "person"
