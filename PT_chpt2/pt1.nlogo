@@ -12,6 +12,12 @@ citizens-own[
   time-in-prison
 ]
 
+cops-own [
+ state
+ time-in-restaurant
+ time-out-of-restaurant
+]
+
 to setup
   clear-all
   set prison-region patches with [pxcor > min-pxcor + 25 and pxcor < max-pxcor - 0 and pycor > min-pycor + 25 and pycor < max-pycor - 0]
@@ -24,6 +30,9 @@ to setup
     set color blue
     set label who
     set label-color white
+    set state "not-hungry"
+    set time-out-of-restaurant random 10
+    set time-in-restaurant 0
   ]
   create-citizens citizen-amount [
     setxy random-xcor random-ycor
@@ -89,28 +98,53 @@ to in-prison
   ]
 end
 
+;to in-restaurant
+ ;
+ ; if time-out-of-restaurant >= hunger [
+ ;   move-to one-of restaurant-region
+ ;
+ ; ]
+;end
 
-to move-cops
-  ask cops [
-    set heading random 360
-    forward cop-speed
-    let nearby-citizens citizens in-radius cop-vision-range
-    if any? nearby-citizens[
-      let target one-of nearby-citizens
-      if [state] of target != "in-prison" [
-        face target
-        fd cop-speed
-        if distance target <= 1 [
+to go-to-restaurant
+  move-to one-of restaurant-region
+  set time-in-restaurant time-in-restaurant + 1
+  if time-in-restaurant >= 5 [
+  set state "not-hungry"
+  set time-in-restaurant 0
+  set time-out-of-restaurant 0
+  ]
+end
+
+to chase
+  set heading random 360
+  forward cop-speed
+  let nearby-citizens citizens in-radius cop-vision-range
+  if any? nearby-citizens[
+    let target one-of nearby-citizens
+    if [state] of target != "in-prison" [
+      face target
+      fd cop-speed
+      if distance target <= 1 [
         ask target[
           if color != red[
             set state "being-arrested"
           ]
         ]
       ]
-      ]
-
-
     ]
+  ]
+  set time-out-of-restaurant time-out-of-restaurant + 1
+  if time-out-of-restaurant >= hunger [
+   set state "hungry"
+  ]
+end
+
+
+to move-cops
+  ask cops [
+    if state = "hungry" [go-to-restaurant]
+    if state = "not-hungry" [chase]
   ]
 end
 @#$#@#$#@
@@ -167,7 +201,7 @@ cop-amount
 cop-amount
 0
 100
-9.0
+41.0
 1
 1
 NIL
@@ -182,7 +216,7 @@ citizen-amount
 citizen-amount
 0
 100
-100.0
+42.0
 1
 1
 NIL
@@ -211,7 +245,7 @@ MONITOR
 1098
 89
 Free Citizen
-count citizens with [color = white]
+count citizens with [state != \"in-prison\"]
 17
 1
 11
@@ -225,7 +259,7 @@ cop-speed
 cop-speed
 0
 5
-1.0
+5.0
 1
 1
 NIL
@@ -237,7 +271,7 @@ MONITOR
 1119
 171
 Citizen in prison
-count citizens with [color = red]
+count citizens with [state = \"in-prison\"]
 17
 1
 11
@@ -251,7 +285,7 @@ cop-vision-range
 cop-vision-range
 0
 5
-2.0
+5.0
 1
 1
 NIL
@@ -266,7 +300,7 @@ hunger
 hunger
 0
 100
-11.0
+100.0
 1
 1
 NIL
@@ -281,7 +315,7 @@ prison-duration
 prison-duration
 0
 100
-20.0
+62.0
 1
 1
 NIL
@@ -334,6 +368,17 @@ false
 "" ""
 PENS
 "default" 1.0 0 -2674135 true "" "plot count citizens with [color = red]"
+
+MONITOR
+831
+81
+959
+126
+Cops in restaurant
+count cops with [state = \"hungry\"]
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
