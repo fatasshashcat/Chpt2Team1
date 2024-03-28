@@ -15,7 +15,7 @@
 
 
 ;development comments
-;n
+;noor1
 ;1-different ways to find other agents within a vision range:
 ; a) if they are neighbors to the agent looking (probably includes oneself as well?)
 ;let target one-of citizens-on neighbors
