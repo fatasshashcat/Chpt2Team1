@@ -4,6 +4,7 @@ breed [prisoners prisoner]
 
 globals [
   prison-region
+  restaurant-region
 ]
 
 citizens-own[
@@ -14,7 +15,9 @@ citizens-own[
 to setup
   clear-all
   set prison-region patches with [pxcor > min-pxcor + 25 and pxcor < max-pxcor - 0 and pycor > min-pycor + 25 and pycor < max-pycor - 0]
+  set restaurant-region patches with [pxcor > min-pxcor + 0 and pxcor < max-pxcor - 25 and pycor > min-pycor + 0 and pycor < max-pycor - 25]
   ask prison-region [ set pcolor yellow ]
+  ask restaurant-region [ set color green ]
   create-cops cop-amount [
     setxy random-xcor random-ycor
     set shape "person"
@@ -94,15 +97,19 @@ to move-cops
     let nearby-citizens citizens in-radius cop-vision-range
     if any? nearby-citizens[
       let target one-of nearby-citizens
-      face target
-      fd cop-speed
-      if distance target <= 1 [
+      if [state] of target != "in-prison" [
+        face target
+        fd cop-speed
+        if distance target <= 1 [
         ask target[
           if color != red[
             set state "being-arrested"
           ]
         ]
       ]
+      ]
+
+
     ]
   ]
 end
@@ -160,7 +167,7 @@ cop-amount
 cop-amount
 0
 100
-5.0
+9.0
 1
 1
 NIL
@@ -175,7 +182,7 @@ citizen-amount
 citizen-amount
 0
 100
-8.0
+100.0
 1
 1
 NIL
@@ -218,7 +225,7 @@ cop-speed
 cop-speed
 0
 5
-5.0
+1.0
 1
 1
 NIL
