@@ -98,14 +98,6 @@ to in-prison
   ]
 end
 
-;to in-restaurant
- ;
- ; if time-out-of-restaurant >= hunger [
- ;   move-to one-of restaurant-region
- ;
- ; ]
-;end
-
 to go-to-restaurant
   move-to one-of restaurant-region
   set time-in-restaurant time-in-restaurant + 1
