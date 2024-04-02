@@ -8,7 +8,7 @@ globals [
 ]
 
 citizens-own[
-  state
+  state ;Hej Gion
   time-in-prison
 ]
 
