@@ -1,6 +1,7 @@
 breed    [ agents an-agent ]
 breed [ cops cop ]
 
+
 globals [
   k                   ; factor for determining arrest probability
   threshold           ; by how much must G > N to make someone rebel?
@@ -10,7 +11,6 @@ agents-own [
   risk-aversion       ; R, fixed for the agent's lifetime, ranging from 0-1 (inclusive)
   perceived-hardship  ; H, also ranging from 0-1 (inclusive)
   active?             ; if true, then the agent is actively rebelling
-  state
   jail-term           ; how many turns in jail remain? (if 0, the agent is not in jail)
 ]
 
@@ -24,7 +24,6 @@ to setup
   ; set globals
   set k 2.3
   set threshold 0.1
-
 
   ask patches [
     ; make background a slightly dark gray
@@ -52,7 +51,7 @@ to setup
     set heading 0
     set risk-aversion random-float 1.0
     set perceived-hardship random-float 1.0
-    set state "not-act"
+    set active? false
     set jail-term 0
     display-agent
   ]

@@ -1,6 +1,7 @@
 breed    [ agents an-agent ]
 breed [ cops cop ]
 
+
 globals [
   k                   ; factor for determining arrest probability
   threshold           ; by how much must G > N to make someone rebel?
