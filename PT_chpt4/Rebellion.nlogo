@@ -10,7 +10,7 @@ globals [
 agents-own [
   risk-aversion       ; R, fixed for the agent's lifetime, ranging from 0-1 (inclusive)
   perceived-hardship  ; H, also ranging from 0-1 (inclusive)
-  active?             ; if true, then the agent is actively rebelling
+  state
   jail-term           ; how many turns in jail remain? (if 0, the agent is not in jail)
 ]
 
@@ -51,7 +51,7 @@ to setup
     set heading 0
     set risk-aversion random-float 1.0
     set perceived-hardship random-float 1.0
-    set active? false
+    set state "not-active"
     set jail-term 0
     display-agent
   ]
@@ -64,73 +64,59 @@ to go
   ask turtles [
     if breed = agents [
       update-beliefs
-      deliberate
-      means-ends-reasoning
+      if jail-term > 0 [
+        set jail-term jail-term - 1
+        ;print "jail-term - 1"
+      ]
     ]
-    ; Rule M: Move to a random site within your vision
-    if (breed = agents and jail-term = 0) or breed = cops [ move ]
-    ;   Rule A: Determine if each agent should be active or quiet
-    if breed = agents and jail-term = 0 [ determine-behavior ]
-    ;  Rule C: Cops arrest a random active agent within their radius
+    if breed = agents and jail-term = 0 [ state-machine ]
     if breed = cops [ enforce ]
+    if (breed = agents and jail-term = 0) or breed = cops [ move ]
   ]
-  ; Jailed agents get their term reduced at the end of each clock tick
-  ask agents [
 
-    if jail-term > 0 [ set jail-term jail-term - 1 ]
-  ]
-  ; update agent display
   ask agents [ display-agent ]
   ask cops [ display-cop ]
-  ; advance clock and update plots
   tick
 end
 
 
 ; AGENT AND COP BEHAVIOR
 
-; move to an empty patch
-to move ; turtle procedure
-  if movement? or breed = cops [
-    ; move to a patch in vision; candidate patches are
-    ; empty or contain only jailed agents
-    let targets neighborhood with [
-      not any? cops-here and all? agents-here [ jail-term > 0 ]
+to move
+  if movement?[
+    if breed = agents [
+      if (state = "not-active" and jail-term = 0) [
+        move-to one-of patches with [not any? turtles-here]
+        ;print "move agents"
+      ]
     ]
+  ]
+  if breed = cops[
+    let targets neighborhood with [not any? cops-here and all? agents-here [ jail-term > 0 ]]
     if any? targets [ move-to one-of targets ]
+    ;print "move cops"
   ]
 end
 
 
 to update-beliefs
+  ; "updating beliefs..."
   set risk-aversion random-float 1.0
   set perceived-hardship random-float 1.0
 end
 
-to deliberate
-  ask agents [
-    ifelse (risk-aversion * perceived-hardship * estimated-arrest-probability) > threshold [
-      set active? true
-    ] [
-      set active? false
-    ]
+
+to state-machine
+  if ((grievance - risk-aversion * estimated-arrest-probability) > threshold) [
+    set state "active"
+    ;print "agent set active"
+  ]
+  if jail-term > 0 [
+    set state "not-active"
+    ;print "agent set not-active"
   ]
 end
 
-to means-ends-reasoning
-  ask agents [
-    if active? [
-      set color red
-      set shape "circle"
-    ]
-  ]
-end
-
-
-; AGENT BEHAVIOR / Deliberate
-to determine-behavior
-  set active? (grievance - risk-aversion * estimated-arrest-probability > threshold)
-end
 
 to-report grievance
   report perceived-hardship * (1 - government-legitimacy)
@@ -138,7 +124,7 @@ end
 
 to-report estimated-arrest-probability
   let c count cops-on neighborhood
-  let a 1 + count (agents-on neighborhood) with [ active? ]
+  let a 1 + count (agents-on neighborhood) with [ state = "active" ]
   ; See Info tab for a discussion of the following formula
   report 1 - exp (- k * floor (c / a))
 end
@@ -146,13 +132,14 @@ end
 ; COP BEHAVIOR
 
 to enforce
-  if any? (agents-on neighborhood) with [ active? ] [
+  if any? (agents-on neighborhood) with [ state = "active" ] [
+    ;print "At least one active agent found in the neighborhood."
     ; arrest suspect
-    let suspect one-of (agents-on neighborhood) with [ active? ]
-    move-to suspect  ; move to patch of the jailed agent
+    let suspect one-of (agents-on neighborhood) with [ state = "active" ]
+    move-to suspect ; move to patch of the jailed agent
     ask suspect [
-      set active? false
       set jail-term random max-jail-term
+      ;print "someone got to jail"
     ]
   ]
 end
@@ -162,32 +149,32 @@ end
 to display-agent  ; agent procedure
   ifelse visualization = "2D"
     [ display-agent-2d ]
-    [ display-agent-3d ]
+  [ display-agent-3d ]
 end
 
 to display-agent-2d  ; agent procedure
   set shape "circle"
-  ifelse active?
+  ifelse state = "active"
     [ set color red ]
-    [ ifelse jail-term > 0
-        [ set color black + 3 ]
-        [ set color scale-color green grievance 1.5 -0.5 ] ]
+  [ ifelse jail-term > 0
+    [ set color black + 3 ]
+    [ set color scale-color green grievance 1.5 -0.5 ] ]
 end
 
-to display-agent-3d  ; agent procedure
+to display-agent-3d ; agent procedure
   set color scale-color green grievance 1.5 -0.5
-  ifelse active?
-    [ set shape "person active" ]
-    [ ifelse jail-term > 0
-        [ set shape "person jailed" ]
-        [ set shape "person quiet" ] ]
+  ifelse state = "active"
+  [ set shape "person active" ]
+  [ ifelse jail-term > 0
+    [ set shape "person jailed" ]
+    [ set shape "person quiet" ] ]
 end
 
 to display-cop
   set color cyan
   ifelse visualization = "2D"
     [ set shape "triangle" ]
-    [ set shape "person soldier" ]
+  [ set shape "person soldier" ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -260,7 +247,7 @@ government-legitimacy
 government-legitimacy
 0.0
 1.0
-0.82
+0.77
 0.01
 1
 NIL
@@ -275,7 +262,7 @@ max-jail-term
 max-jail-term
 0.0
 50.0
-30.0
+6.0
 1.0
 1
 turns
@@ -286,8 +273,8 @@ MONITOR
 410
 300
 455
-active (red)
-count agents with [active?]
+active
+count agents with [state = \"active\"]
 3
 1
 11
@@ -301,7 +288,7 @@ vision
 vision
 0.0
 10.0
-7.0
+10.0
 .1
 1
 patches
@@ -327,7 +314,7 @@ initial-cop-density
 initial-cop-density
 0.0
 100.0
-4.0
+50.0
 0.1
 1
 %
@@ -338,8 +325,8 @@ MONITOR
 410
 110
 455
-quiet (green)
-count agents with [not active? and jail-term = 0]
+quiet
+count agents with [state = \"not-active\" and jail-term = 0]
 1
 1
 11
@@ -375,7 +362,7 @@ initial-agent-density
 initial-agent-density
 0.0
 100.0
-25.0
+47.0
 1.0
 1
 %
@@ -408,9 +395,9 @@ true
 true
 "" ""
 PENS
-"quiet" 1.0 0 -10899396 true "" "plot count agents with [not active? and jail-term = 0]"
+"quiet" 1.0 0 -10899396 true "" "plot count agents with [state = \"not-active\" and jail-term = 0]"
 "jailed" 1.0 0 -16777216 true "" "plot count agents with [jail-term > 0]"
-"active" 1.0 0 -2674135 true "" "plot count agents with [active?]"
+"active" 1.0 0 -2674135 true "" "plot count agents with [state = \"active\"]"
 
 TEXTBOX
 10
