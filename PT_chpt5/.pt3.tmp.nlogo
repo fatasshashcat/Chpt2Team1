@@ -89,18 +89,7 @@ to move-to-destination
   ]
 end
 
-to move-to-work
-  let workarea one-of work-region
-  face workarea
-  forward citizen-speed
-  if (patch-here = workarea) [
-  set state "working"
-  ]
-  let nearby-cops cops in-radius citizen-vision-range
-  if any? nearby-cops [
-    run-away
-  ]
-end
+
 
 to run-away
   let nearby-cops cops in-radius citizen-vision-range
