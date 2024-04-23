@@ -121,8 +121,8 @@ set localxy patch-here
     inPrison? [bidePrisonTime]
     ;(A > 1) and (any? nearby-police) [hideFromCops nearby-police hidingplaces]
     any? nearby-police [hideFromCops nearby-police hidingplaces]
-    destinationxy != [] [moveToDestxy]
-    ;(destinationxy != []) and (destinationxy != localxy) [moveToDestxy]
+    ;destinationxy != [] [moveToDestxy]
+    (destinationxy != []) and (destinationxy != localxy) [moveToDestxy]
     walkdesire? [moveAround]
     [proactiveBehavior] ; this function always at the end by itself
   )
@@ -223,7 +223,10 @@ to proactiveBehavior
   
   ; For testing
   ;set proState item (random 8) StateList
-  set proState item (3) StateList
+  ;set proState item (3) StateList
+  delibirate
+  
+  
   if Debug [print (word who "deliberated proState = " proState)]
   print "går runt"
   
@@ -240,24 +243,28 @@ to proactiveBehavior
     proState = "Demonstration" [demonstrate]   
     ; add more states here, the order does not matter
   )
- 
-    ifelse hour-of-day >= 7 and hour-of-day < 16 [
-    set destinationxy one-of patches with [region = "Workplace"]
-    set proState item (1) StateList
-    print "jobb"
-  ] [
+  
+end
+
+
+;"""""""""""""""""""" State functions """"""""""""""""""""""""""""""""""""""""""""""
+
+to delibirate 
+  
+  if hour-of-day >= 7 and hour-of-day < 16 [
+    set destinationxy locWork
+    set proState "Work"
+  ] 
+  
     if hour-of-day >= 16 [
-      set destinationxy []
-      set proState item (3) StateList
-      print "16"
-      ]
+      set destinationxy homeLoc
+      set proState "Unemployed"
     ]
   
   
 end
 
 
-;"""""""""""""""""""" State functions """"""""""""""""""""""""""""""""""""""""""""""
 
 to walkAround
   if Debug [print (word who " is in the proactive state walkAround")]
@@ -277,8 +284,9 @@ end
 
 to work
   if Debug [print (word who " is in the proactive state Work")]
-  if hour-of-day < 16 [
-    set destinationxy one-of patches with [region = "Workplace"]
+  if hour-of-day = 16 [
+    set destinationxy homeLoc
+    set Prostate "Study"
   ] ; Ingen kod efter 16:00, låt 'proactiveBehavior' hantera logiken.
 end
 
