@@ -1,224 +1,261 @@
-breed [cops cop]
-breed [citizens citizen]
-breed [prisoners prisoner]
+; DIS-PT_chpt6
+; template for the programming task with cops and citizen agents
+;
+; HOW TO WORK WITH THIS FILE:
+;
+; 1. Bransch this file from Github for your group
+; 2. Divide the work from the task to your group members, so that every group member has at least one own task
+; 3. Make individual bransches per group member from the group-bransch that you made under 1.
+; 4. Start with your individual tasks development and make push- and pulls between your individual bransches as needed
+; 5. When the individual tasks are finished you need to merge the different parts back into the original group-bransch
+; 6. Make sure that the final version works before uploading it under PT_chpt6 on Canvas.
+;
+;
+
+
+
+
+; ************ INCLUDED FILES *****************
+__includes [
+    "setupenvironment.nls" ; setup-functions for setting up the environment with houses town-square, work-places, prison, police-station, restaurants, ....
+    "citizens.nls" ; code for citizen agents
+    "cops.nls"; code for cop agents
+    "bdi.nls" ; contains the extension code for bdi with beliefs hash-tables and intention stacks
+    "communication.nls"; contains the extension for FIPA-like communication protocols
+    "vid.nls" ; contains the code for the recorder. You also need to activate the vid-extension and the command at the end of setup
+]
+; ********************end included files ********
+
+; ************ EXTENSIONS *****************
+extensions [
+ vid bitmap; used for recording of the simulation
+]
+; ********************end extensions ********
+
+;****************** INITIAL AND DEFINITIONS PART **********
+;
+;----- Breeds of agents
+breed [citizens citizen]  ;
+breed [cops cop] ;
 
 globals [
-  prison-region
-  restaurant-region
-  destination-region
-  work-region
+  ;
+  ; Global variables used by the citizen agents to adapt their local variables
+  L;------------------------current global government legitimacy
+  newArrests;---------------number of newly arrested citizens during the time interval
+  alfa;---------------------constant factor that determines how fast arresting episodes are forgotten
+  glbFear;------------------value for the collective global fear amongst citizen agents
+  nArrests;-----------------Total number of currently arrested citizens
+  Jmax;---------------------Maximum jail term that a citizen can be sentenced to
+
+
+  ; Global variables that are observed to monitor the dynamics and the result of the simulation
+  max-jailterm
+
+
+  ;----- Time variables
+  ; we might instead want to make use of the time extension, see https://ccl.northwestern.edu/netlogo/docs/time.html
+  time; One tick represents x minutes, time contains the sum of minutes for a day
+  flagMorning ; true if it is morning, e.g. time to get up
+  flagAfternoon;
+  flagEvening ; true if it is evening
+  flagWeekend ; true if it is a weekend (2-days, Saturday and Sunday)
+  hour-of-day;
+
+  ;----- Spatial units, locations
+  locPrison ; location of the prison
+  locPolStation; location of the police station
+  locFactory; location of the factory
+  locUni; location of the university
+  locWork; location of the work-place
+  locTownSquare; location of the town square
+  locCinema; location of the entertainment-place
+  locRestaurant; location of the restaurant
+  locSocialEvents; location of the volunteer place
 ]
 
-citizens-own[
-  state
-  time-in-prison
-  ;working?
-  time-working
-  time-home
+;---- General agent variables
+turtles-own [
+  ;speed
+  beliefs
+  intentions
+  incoming-queue
 ]
 
-cops-own [
- state
- time-in-restaurant
- time-out-of-restaurant
+;---- Specific, local variables of patches
+patches-own [
+  neighborhood        ; surrounding patches within the vision radius
+  region              ; used for identification of different regions
 ]
 
+
+
+
+; ######################## SETUP PART ################################
+; setup of the environment, and the different agents
 to setup
   clear-all
-  set prison-region patches with [pxcor > min-pxcor + 25 and pxcor < max-pxcor - 0 and pycor > min-pycor + 25 and pycor < max-pycor - 0]
-  set restaurant-region patches with [pxcor > min-pxcor + 0 and pxcor < max-pxcor - 25 and pycor > min-pycor + 0 and pycor < max-pycor - 25]
-  set destination-region patches with [pxcor < 0 and pycor > max-pycor - 10]
-  set work-region patches with [pxcor > max-pxcor - 10 and pycor < min-pycor + 10]
-  ask prison-region [ set pcolor yellow ]
-  ask restaurant-region [ set pcolor green ]
-  ask destination-region [ set pcolor red ]
-  ask work-region [ set pcolor white ]
-  create-cops cop-amount [
-    setxy random-xcor random-ycor
-    set shape "car"
-    set color blue
-    set label who
-    set label-color white
-    set state "not-hungry"
-    set time-out-of-restaurant random 10
-    set time-in-restaurant 0
-  ]
-  create-citizens citizen-amount [
-    setxy random-xcor random-ycor
-    set shape "person"
-    set color white
-    set label who
-    set label-color pink
-    set state "moving-home"
-    set time-in-prison 0
-    ;set working false
-    set time-working 0
-    set time-home 0
-  ]
+  ; define global variables that are not set as sliders
+  set max-jailterm 10
+
+  ;set time 6
+  set hour-of-day 6
+  ; setup of the environment:
+  setup-environment ;
+  ; setup of all patches
+
+  ; setup citizens
+  setup-citizens
+  ;---- setup cops
+  setup-cops
+
+
+
+  ; must be last in the setup-part:
   reset-ticks
+  ;recorder
+  if vid:recorder-status = "recording" [
+    if Source = "Only View" [vid:record-view] ; records the plane
+    if Source = "With Interface" [vid:record-interface] ; records the interface
+  ]
+
 end
 
+; **************************end setup part *******
+
+
+
+; ########################## TO GO/ STARTING PART ########################
+;;
 to go
-  move-home-citizens
-  move-cops
-  tick
-end
+  ;---- Basic functions, like setting the time
+  ;
+  tick ;- update time
+  update-time-flags ;- update time
 
-to move-home-citizens
-  ask citizens [
-    if state = "moving-home"[move-to-destination]
-    if state = "moving-work" [move-to-work]
-    if state = "being-arrested"[being-arrested]
-    if state = "in-prison" [in-prison]
-    if state = "working" [work]
-    if state = "free" [free]
-  ]
-
-end
-
-to move-to-destination
-  let destination one-of destination-region
-  face destination
-  forward citizen-speed
-  if (patch-here = destination) [
-  set state "free"
-  ]
-  let nearby-cops cops in-radius citizen-vision-range
-  if any? nearby-cops [
-    run-away
-  ]
-end
-
-
-
-to run-away
-  let nearby-cops cops in-radius citizen-vision-range
-  if any? nearby-cops[
-    let target one-of nearby-cops
-    face target
-    fd (-1 * citizen-speed)
-  ]
-end
-
-to being-arrested
-  move-to one-of prison-region
-  set color red
-  set state "in-prison"
-end
-
-to in-prison
-  set time-in-prison time-in-prison + 1
-  if time-in-prison >= prison-duration[
-    set color green
-    set time-in-prison 0
-    set state "moving-home"
-  ]
-end
-
-to go-to-restaurant
-  move-to one-of restaurant-region
-  set time-in-restaurant time-in-restaurant + 1
-  if time-in-restaurant >= 5 [
-  set state "not-hungry"
-  set time-in-restaurant 0
-  set time-out-of-restaurant 0
-  ]
-end
-
-to chase
-  set heading random 360
-  forward cop-speed
-  let nearby-citizens citizens in-radius cop-vision-range
-  if any? nearby-citizens[
-    let target one-of nearby-citizens
-    if [state] of target != "in-prison" [
-      if [state] of target != "free" [
-        if [state] of target != "working" [
-          face target
-          fd cop-speed
-          if distance target <= 1 [
-            ask target[
-              if color != red[
-                set state "being-arrested"
-              ]
-            ]
-          ]
-        ]
+  ;---- Agents to-go part -------------
+  ; Cyclic execution of what the agents are supposed to do
+  ;
+  ask turtles [
+    ; based on the type of agent
+    if (breed = citizens) [
+      citizen_behavior ; code as defined in the include-file "citizens.nls"
       ]
-    ]
+    if (breed = cops) [
+      cop_behavior ; code as defined in the include-file "cops.nls"
+      ]
   ]
-  set time-out-of-restaurant time-out-of-restaurant + 1
-  if time-out-of-restaurant >= hunger [
-    set state "hungry"
+
+  ;recorder
+ if vid:recorder-status = "recording" [
+    if Source = "Only View" [vid:record-view] ; records the plane
+    if Source = "With Interface" [vid:record-interface] ; records the interface
   ]
+
+end ; - to go part
+
+
+
+; ####################### OBSERVER FUNCTIONS ##############################
+; monitoring functions with plots for number of arrested citizens
+
+
+;-----------------------
+
+
+; TIME FUNCTIONS
+to update-time-flags
+  ; The time is measured in ticks where one tick is an hour.
+  ; The time is tracked in the time variable and this variable is
+  ; reset every week (or every 168 hours).
+
+
+
+  ; Set the time
+  set time (time + 0.1)
+  set time time mod 168
+
+
+  ; Determine if it is morning, evening or weekend
+  set hour-of-day hour-of-day + 0.1
+
+
+  ifelse (6 <= hour-of-day and hour-of-day <= 10)[
+    set flagMorning true
+  ] [
+  set flagMorning false
+  ]
+
+
+
+  ; Check if it is evening
+  ifelse (16 <= hour-of-day and hour-of-day <= 22)[
+    set flagEvening true
+
+  ] [
+    set flagEvening false
+  ]
+
+  ; Check if it is weekend
+  ifelse (time >= 120) [
+    set flagWeekend true
+  ] [
+    set flagWeekend false
+  ]
+
+  if hour-of-day >= 23 [set hour-of-day 5]
+  ;if Debug [print word "Time: " time]
+
 end
-
-
-to move-cops
-  ask cops [
-    if state = "hungry" [go-to-restaurant]
-    if state = "not-hungry" [chase]
-  ]
-end
-
-
-
-to work
-  set time-working time-working + 1
-  if time-working >= 6 [
-  ;set working? false
-  set time-working 0
-  set state "moving-home"
-  ]
-
-end
-
-to free
-  set time-home time-home + 1
-  if time-home >= 6 [
-    set time-home 0
-  set state "moving-work"
-  ]
-
-
-end
-
-
-
 @#$#@#$#@
 GRAPHICS-WINDOW
-213
-8
-751
-547
+549
+10
+1731
+614
 -1
 -1
-16.061
+17.5224
 1
 10
 1
 1
 1
 0
-0
-0
 1
--16
-16
--16
-16
+1
+1
+0
+66
+0
+33
 0
 0
 1
 ticks
 30.0
 
-BUTTON
-68
-53
-131
-86
+SLIDER
+23
+397
+137
+430
+num-citizens
+num-citizens
+1
+150
+19.0
+1
+1
 NIL
+HORIZONTAL
+
+BUTTON
+454
+41
+517
+74
+setup
 setup
 NIL
 1
@@ -230,42 +267,12 @@ NIL
 NIL
 1
 
-SLIDER
-20
-266
-192
-299
-cop-amount
-cop-amount
-0
-100
-19.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-775
-250
-947
-283
-citizen-amount
-citizen-amount
-0
-100
-42.0
-1
-1
-NIL
-HORIZONTAL
-
 BUTTON
-68
-172
-131
-205
-NIL
+455
+91
+518
+124
+go
 go
 T
 1
@@ -277,165 +284,184 @@ NIL
 NIL
 1
 
-MONITOR
-1019
-44
-1098
-89
-Free Citizen
-count citizens with [state != \"in-prison\"]
-17
+SLIDER
+23
+437
+136
+470
+num-cops
+num-cops
+0
+150
+47.0
 1
-11
+1
+NIL
+HORIZONTAL
 
 SLIDER
+156
+398
+248
+431
+citizen-vision
+citizen-vision
+1
 10
-391
-182
-424
-cop-speed
-cop-speed
-0
-5
-2.0
-1
+0.0
+0.1
 1
 NIL
 HORIZONTAL
 
-MONITOR
-1025
-126
-1119
-171
-Citizen in prison
-count citizens with [state = \"in-prison\"]
-17
-1
-11
-
 SLIDER
+156
+436
+248
+469
+cop-vision
+cop-vision
+1
+100
+0.0
+0.1
+1
+NIL
+HORIZONTAL
+
+BUTTON
+21
+500
+109
+533
+start recorder
+start-recorder
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
 19
-320
-191
-353
-cop-vision-range
-cop-vision-range
-0
-5
-2.0
-1
-1
+542
+108
+575
+reset recorder
+reset-recorder
 NIL
-HORIZONTAL
-
-SLIDER
-14
-466
-186
-499
-hunger
-hunger
-0
-100
-91.0
 1
-1
+T
+OBSERVER
 NIL
-HORIZONTAL
+NIL
+NIL
+NIL
+1
 
-SLIDER
-773
+BUTTON
+18
+584
+107
+617
+save recording
+save-recording
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+MONITOR
+124
+503
+244
+548
+NIL
+vid:recorder-status
+3
+1
+11
+
+CHOOSER
+124
+559
+243
+604
+Source
+Source
+"Only View" "With Interface"
+0
+
+TEXTBOX
+18
+468
+253
+496
+_______________________________________
+11
+0.0
+1
+
+SWITCH
+26
+219
+163
+252
+showPatchLabels
+showPatchLabels
+0
+1
+-1000
+
+SWITCH
+25
+263
+163
+296
+show-intentions
+show-intentions
+0
+1
+-1000
+
+SWITCH
+26
+307
+163
+340
+show_messages
+show_messages
+1
+1
+-1000
+
+SWITCH
+25
+350
+159
+383
+Debug
+Debug
+0
+1
+-1000
+
+MONITOR
+363
+172
 455
-945
-488
-prison-duration
-prison-duration
-0
-100
-43.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-775
-309
-947
-342
-citizen-vision-range
-citizen-vision-range
-0
-5
-1.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-775
-379
-947
-412
-citizen-speed
-citizen-speed
-0
-5
-1.0
-1
-1
-NIL
-HORIZONTAL
-
-PLOT
-973
-276
-1754
-716
-plot 2
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -2674135 true "" "plot count citizens with [color = red]"
-
-MONITOR
-831
-81
-959
-126
-Cops in restaurant
-count cops with [state = \"hungry\"]
-17
-1
-11
-
-MONITOR
-820
-175
-924
-220
-Citizen at work
-count citizens with [state = \"working\"]
-17
-1
-11
-
-MONITOR
-983
-212
-1099
-257
-Citizens at home
-count citizens with [state = \"free\"]
+217
+hour
+hour-of-day
 17
 1
 11
@@ -656,6 +682,29 @@ Polygon -7500403 true true 105 90 120 195 90 285 105 300 135 300 150 225 165 300
 Rectangle -7500403 true true 127 79 172 94
 Polygon -7500403 true true 195 90 240 150 225 180 165 105
 Polygon -7500403 true true 105 90 60 150 75 180 135 105
+
+person police
+false
+0
+Polygon -1 true false 124 91 150 165 178 91
+Polygon -13345367 true false 134 91 149 106 134 181 149 196 164 181 149 106 164 91
+Polygon -13345367 true false 180 195 120 195 90 285 105 300 135 300 150 225 165 300 195 300 210 285
+Polygon -13345367 true false 120 90 105 90 60 195 90 210 116 158 120 195 180 195 184 158 210 210 240 195 195 90 180 90 165 105 150 165 135 105 120 90
+Rectangle -7500403 true true 123 76 176 92
+Circle -7500403 true true 110 5 80
+Polygon -13345367 true false 150 26 110 41 97 29 137 -1 158 6 185 0 201 6 196 23 204 34 180 33
+Line -13345367 false 121 90 194 90
+Line -16777216 false 148 143 150 196
+Rectangle -16777216 true false 116 186 182 198
+Rectangle -16777216 true false 109 183 124 227
+Rectangle -16777216 true false 176 183 195 205
+Circle -1 true false 152 143 9
+Circle -1 true false 152 166 9
+Polygon -1184463 true false 172 112 191 112 185 133 179 133
+Polygon -1184463 true false 175 6 194 6 189 21 180 21
+Line -1184463 false 149 24 197 24
+Rectangle -16777216 true false 101 177 122 187
+Rectangle -16777216 true false 179 164 183 186
 
 plant
 false

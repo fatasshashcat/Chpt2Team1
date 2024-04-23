@@ -2,7 +2,11 @@ breed [cops cop]
 breed [citizens citizen]
 breed [prisoners prisoner]
 
+extensions [vid]
+
+
 globals [
+  Source
   prison-region
   restaurant-region
   destination-region
@@ -22,6 +26,36 @@ cops-own [
  time-in-restaurant
  time-out-of-restaurant
 ]
+
+to start-recorder 
+  carefully [ vid:start-recorder] [ user-message error-message ] 
+end  
+
+to reset-recorder 
+  let message (word     "If you reset the recorder, the current recording will be lost."     "Are you sure you want to reset the recorder?") 
+  if vid:recorder-status = "inactive" or user-yes-or-no? message [ 
+    vid:reset-recorder 
+  ] 
+end  
+
+to save-recording 
+  if vid:recorder-status = "inactive" [
+    user-message "The recorder is inactive. There is nothing to save." 
+    stop 
+  ] 
+  ; prompt user for movie location 
+  user-message (word     "Choose a name for your movie file (the "     ".mp4 extension will be automatically added).") 
+  let path user-new-file   if not is-string? path [ stop ]
+  ; stop if user canceled 
+  ; export the movie 
+  carefully [ 
+    vid:save-recording path 
+    user-message (word "Exported movie to " path ".") 
+  ] [ 
+    user-message error-message 
+  ] 
+end 
+
 
 to setup
   clear-all
@@ -56,12 +90,25 @@ to setup
     set time-home 0
   ]
   reset-ticks
+      ;recorder 
+  if vid:recorder-status = "recording" [ 
+    if Source = "Only View" [vid:record-view]
+    ; records the plane 
+    if Source = "With Interface" [vid:record-interface]
+    ; records the interface 
+  ]
 end
 
 to go
   move-home-citizens
   move-cops
   tick
+  if vid:recorder-status = "recording" [ 
+    if Source = "Only View" [vid:record-view]
+    ; records the plane 
+    if Source = "With Interface" [vid:record-interface]
+    ; records the interface 
+  ] 
 end
 
 to move-home-citizens
@@ -193,9 +240,6 @@ to free
 
 
 end
-
-
-
 @#$#@#$#@
 GRAPHICS-WINDOW
 213
@@ -450,6 +494,78 @@ count citizens with [state = \"free\"]
 17
 1
 11
+
+BUTTON
+18
+522
+136
+555
+Start recorder
+start-recorder
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+18
+565
+141
+598
+Reset recorder
+reset-recorder
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+18
+616
+142
+649
+Save recording
+save-recording
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+MONITOR
+163
+570
+297
+615
+NIL
+vid:recorder-status
+17
+1
+11
+
+CHOOSER
+168
+631
+306
+676
+Soruce
+Soruce
+"Only View" "With Interface"
+0
 
 @#$#@#$#@
 ## WHAT IS IT?
