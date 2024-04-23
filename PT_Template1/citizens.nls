@@ -192,6 +192,7 @@ to moveToDestxy
   [ let reg []
     ask patch-here [set reg region]
     if Debug [print (word who " arrived at destination: " reg)]]
+  ;proactiveBehavior
 end
 ;"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
@@ -205,9 +206,9 @@ to proactiveBehavior
   ;
   ;
   
-  ifelse hour-of-day >= 7 and hour-of-day <= 16 [work] [walkAround]
+  ;ifelse hour-of-day >= 7 and hour-of-day <= 16 [work] [walkAround]
   
-  if hour-of-day >= 16 [set destinationxy homeLoc]
+  ;if hour-of-day >= 16 [set destinationxy homeLoc]
   
   
   ; For testing purposes
@@ -224,6 +225,7 @@ to proactiveBehavior
   ;set proState item (random 8) StateList
   set proState item (3) StateList
   if Debug [print (word who "deliberated proState = " proState)]
+  print "går runt"
   
   
   ; "Finite State Machine" 
@@ -239,6 +241,18 @@ to proactiveBehavior
     ; add more states here, the order does not matter
   )
  
+    ifelse hour-of-day >= 7 and hour-of-day < 16 [
+    set destinationxy one-of patches with [region = "Workplace"]
+    set proState item (1) StateList
+    print "jobb"
+  ] [
+    if hour-of-day >= 16 [
+      set destinationxy []
+      set proState item (3) StateList
+      print "16"
+      ]
+    ]
+  
   
 end
 
@@ -263,10 +277,9 @@ end
 
 to work
   if Debug [print (word who " is in the proactive state Work")]
-  set destinationxy one-of patches with [region = "Workplace"]
-  ;if hour-of-day >= 16 [proactiveBehavior]
-  if hour-of-day >= 16 [set destinationxy one-of patches with [region = "homeLoc"]]
-  stop
+  if hour-of-day < 16 [
+    set destinationxy one-of patches with [region = "Workplace"]
+  ] ; Ingen kod efter 16:00, låt 'proactiveBehavior' hantera logiken.
 end
 
 to unemployed
