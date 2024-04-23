@@ -294,7 +294,7 @@ cop-amount
 cop-amount
 0
 100
-19.0
+8.0
 1
 1
 NIL
@@ -309,7 +309,7 @@ citizen-amount
 citizen-amount
 0
 100
-42.0
+61.0
 1
 1
 NIL
@@ -352,7 +352,7 @@ cop-speed
 cop-speed
 0
 5
-2.0
+4.0
 1
 1
 NIL
@@ -378,7 +378,7 @@ cop-vision-range
 cop-vision-range
 0
 5
-2.0
+5.0
 1
 1
 NIL
@@ -393,7 +393,7 @@ hunger
 hunger
 0
 100
-91.0
+15.0
 1
 1
 NIL
