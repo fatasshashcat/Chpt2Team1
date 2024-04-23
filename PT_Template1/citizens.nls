@@ -21,6 +21,7 @@ citizens-own [
   A ;-----------------Number of cop agents within cvision
   hide?;--------------Decision to either continue with the task or to interrupt the task and hide from cops
   fear ;--------------Personal fear variable
+  test
   
   anger ;-------------Value for the citizen’s anger or aggression
   thrAnger ;----------Threshold for the anger value being ’high’
