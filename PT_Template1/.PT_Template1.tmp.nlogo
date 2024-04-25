@@ -518,8 +518,8 @@ CHOOSER
 408
 474
 453
-copSource
-copSource
+Soure
+Soure
 "rule-of-law" "arrest-troublemakers"
 0
 
