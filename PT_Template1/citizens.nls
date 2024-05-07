@@ -7,14 +7,16 @@
 ;
 ;---------------------------------------------------
 
-
+globals [
+  numPrisoners ; Number of prisoners
+]
 ;---- Specific, local variables of citizen-agents
 citizens-own [
   ;cvision;-----------citizen-vision is set by ruler 'citizen-vision'
   homeLoc;------------home location, where the agent lives
   localxy;------------current local patch on which the agent is standing on
   destinationxy;------destination patch to go to
-  ;destinationRegion;-destination region to go to
+               ;destinationRegion;-destination region to go to
   walkdesire?;--------flag to indicate wanting to move around
   pArrest;------------Arrest probability.
   C ;-----------------Number of citizen agents within cvision (includes oneself)
@@ -40,8 +42,8 @@ citizens-own [
   inPrison?;----------Whether or not the citizen is in prison
   friendList;---------List of other citizen agents that are considered as friends
   proState ;----------State variable for the proactive states. Enumeration = Study, 
-                      ;Work, Unemployed, ’Walking around’, ’Meeting friends’, ’Go out’, Political, Resignation, Demonstration
-                      ;Pursue of Happiness Goals
+           ;Work, Unemployed, ’Walking around’, ’Meeting friends’, ’Go out’, Political, Resignation, Demonstration
+           ;Pursue of Happiness Goals
   vWalk ;-------------Value for Walk-desire [0..1]
   minWalk ;-----------Min-value for Walk-desire after fulfillment of desire
   thrWalk ;-----------Threshold for Walk-desire
@@ -61,6 +63,7 @@ citizens-own [
   
   ;different help-variables
   counter; -----------general purpose counter
+  
   
 ]
 
@@ -87,34 +90,35 @@ to setup-citizens
     set destinationxy []
     set walkdesire? false
     set counter 0 ; all-purpose counter
+    set numPrisoners 0
   ]
-
+  
 end
 
 
 to citizen_behavior
   
-;########## Updating the Beliefs, e.g. the agent's information about its environment ##############
+  ;########## Updating the Beliefs, e.g. the agent's information about its environment ##############
   
-;---- cops nearby, which one is the nearest? How many cops, how many citizens?
-let nearby-police other cops in-radius citizen-vision
-if any? nearby-police [let police min-one-of nearby-police [distance myself]]; identify the cop that is nearest  
-set A count nearby-police
-set C count (other citizens in-radius citizen-vision)
-; ---- identify a path to escape to if needed
-let hidingplaces neighborhood with [not any? cops-here and region = "empty" or region = "TownSquare"]
-;--- save local position
-set localxy patch-here
+  ;---- cops nearby, which one is the nearest? How many cops, how many citizens?
+  let nearby-police other cops in-radius citizen-vision
+  if any? nearby-police [let police min-one-of nearby-police [distance myself]]; identify the cop that is nearest  
+  set A count nearby-police
+  set C count (other citizens in-radius citizen-vision)
+  ; ---- identify a path to escape to if needed
+  let hidingplaces neighborhood with [not any? cops-here and region = "empty" or region = "TownSquare"]
+  ;--- save local position
+  set localxy patch-here
   
-;---test purpose
-;set destinationxy one-of patches with [region = "Restaurant"]
-
-    
-    
-
-;################## REACTIVE BEHAVIOR ####################################
-; subsumption hierarchy with highest priority in first if-sentence
- 
+  ;---test purpose
+  ;set destinationxy one-of patches with [region = "Restaurant"]
+  
+  
+  
+  
+  ;################## REACTIVE BEHAVIOR ####################################
+  ; subsumption hierarchy with highest priority in first if-sentence
+  
   
   (ifelse
     ;add all the reactive behavior in order of their priorities- highest at the top of the list
@@ -137,12 +141,13 @@ to gotoprison
   ; set flag
   set inPrison? true
   set color red
+  set numPrisoners numPrisoners + 1
   ; move to prison into an own cell (=own patch)
   let prisoncell one-of patches with [not any? turtles-here and region = "Prison"]
   ifelse (prisoncell != nobody) [move-to one-of patches with [not any? turtles-here and region = "Prison"]]
   ; else 
   [if Debug [print "Prison is too crowded, more than one prisoner in a cell"]
-  move-to one-of patches with [region = "Prison"]] 
+    move-to one-of patches with [region = "Prison"]] 
   if Debug [print (word "citizen: " who " is put into prison")]
 end
 
@@ -151,14 +156,15 @@ to bidePrisonTime
   set jailterm jailterm + 1 ;counting the time in prison
   if Debug [print (word "citizen " who "is in prison since: " jailterm)]
   if jailterm > jailsentence [; released from prison
-      set jailterm 0
-      ; move forward where there are no cops and is not prison
-      ;let places neighborhood with [not any? cops-here and region != "Prison"]
-      let places neighborhood with [not any? cops-here and region = "empty" or region = "TownSquare"]
-      if any? places [move-to one-of places]
-      set inPrison? false
-      set color yellow
-      if Debug [print (word "citizen " who "is released from prison") ]
+    set jailterm 0
+    ; move forward where there are no cops and is not prison
+    ;let places neighborhood with [not any? cops-here and region != "Prison"]
+    let places neighborhood with [not any? cops-here and region = "empty" or region = "TownSquare"]
+    if any? places [move-to one-of places]
+    set inPrison? false
+    set color yellow
+    set numPrisoners numPrisoners - 1
+    if Debug [print (word "citizen " who "is released from prison") ]
   ]
 end
 
@@ -167,9 +173,9 @@ to hideFromCops [nearby-police hidingplaces]
   if Debug [print (word " citizen: " who " hiding from cop: " police)]
   
   if (distance police) > 0 [ ;check if the distance to this police is 0 then just give up, since heading produces errors 
-  set heading (towards police) + 180 ; face opposite from the nearest police
-  if any? hidingplaces [move-to one-of hidingplaces]
-        ] 
+    set heading (towards police) + 180 ; face opposite from the nearest police
+    if any? hidingplaces [move-to one-of hidingplaces]
+  ] 
 end
 
 to moveAround
@@ -185,9 +191,9 @@ end
 
 to moveToDestxy
   ifelse localxy != destinationxy [
-        face destinationxy
-        fd 1
-        if Debug [print (word who " in moveToDestxy")]
+    face destinationxy
+    fd 1
+    if Debug [print (word who " in moveToDestxy")]
   ] 
   [ let reg []
     ask patch-here [set reg region]
@@ -233,7 +239,7 @@ to proactiveBehavior
     proState = "Demonstration" [demonstrate]   
     ; add more states here, the order does not matter
   )
- 
+  
   
 end
 
@@ -275,3 +281,74 @@ to demonstrate
 end
 
 ;""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+;task 7
+
+to task7_citizen_behavior
+  handle-multiple-options
+  handle-single-option
+  handle-response
+  
+  ; Additional citizen behavior code
+end
+
+to handle-multiple-options
+  if not empty? incoming-queue [
+    let msg get-message
+    if get-performative msg = "request" and is-list? get-content msg [
+      let options order-options (get-content msg)
+      let response create-reply "inform" msg
+      set response add-content options response
+      send response
+    ]
+  ]
+end
+
+to-report order-options [options]
+  let preferences [ "Cinema" "Restaurant" "SocialEvents" ]
+  report sort-by [ [element1 element2] -> (position-of-element element1 preferences) < (position-of-element element2 preferences) ] options
+end
+
+to-report position-of-element [element options]
+  ifelse member? element options
+  [ report position element options ]
+  [ report length options ]  ; If the item is not in the preferences list, rank it last
+end
+
+to handle-single-option
+  if not empty? incoming-queue [
+    let msg get-message
+    if get-performative msg = "request" and not is-list? get-content msg [
+      let option get-content msg
+      let decision make-decision option
+      let response create-reply "inform" msg
+      set response add-content decision response
+      send response
+    ]
+  ]
+end
+
+to-report make-decision [option]
+  ; Assume there's a preferred option, otherwise, randomly decide
+  if option = "Movie" [
+    report "Accept"
+  ]
+  if random 2 = 0 [
+    report "Accept"
+  ]
+  report "Decline"
+end
+
+to handle-response
+  if not empty? incoming-queue [
+    let msg get-message
+    if get-performative msg = "inform" [
+      let content get-content msg
+      if content = "Accept" [
+        print "The friend accepted the invitation."
+      ]
+      if content = "Decline" [
+        print "The friend declined the invitation."
+      ]
+    ]
+  ]
+end
