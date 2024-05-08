@@ -149,6 +149,8 @@ to go
     set L (1 / (exp((newarrest / num-citizens))))
     count-new-arrests
   ]
+  ask one-of citizens [ task7_citizen_behavior ]
+
 
   ; recorder
   if vid:recorder-status = "recording" [
