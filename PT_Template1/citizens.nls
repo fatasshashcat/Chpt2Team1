@@ -355,19 +355,3 @@ to handle-response
   ]
 end
 
-
-to test-multiple-options-behavior
-  clear-all
-  setup-citizens  ; Ensure this setups at least one citizen with communication capacity
-  
-  ask one-of citizens [
-    let options list "Cinema", "Restaurant",  "SocialEvents"
-    let msg create-message "request"
-    set msg add-content options msg
-    receive msg
-  ]
-  
-  ; Trigger the behavior processing
-  ask one-of citizens [ task7_citizen_behavior ]
-end
-

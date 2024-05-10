@@ -31,16 +31,16 @@ to send [msg]
   let recipients get-receivers msg
   let recv 0
   foreach recipients [i ->
-   set recv turtle (read-from-string i)
-   if recv != nobody [without-interruption [ask recv [receive msg]]] ;; read-from-string is required to convert the string to number
+    set recv turtle (read-from-string i)
+    if recv != nobody [without-interruption [ask recv [receive msg]]] ;; read-from-string is required to convert the string to number
   ]
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Message reception deals with updating incoming-queue
 to receive [msg]
-   if show_messages [show msg]
-   set incoming-queue lput msg incoming-queue
+  if show_messages [show msg]
+  set incoming-queue lput msg incoming-queue
 end 
 
 ;; This reporter returns the next message in the list and removes it from the queue.
@@ -68,24 +68,24 @@ to broadcast-to [t-breed msg agent]
   foreach [who] of t-breed [i ->
     ifelse i = agent [
       ;;;do nothing
-      ][
-       send add-receiver i msg 
-      ]        
+    ][
+      send add-receiver i msg 
+    ]        
   ]
 end 
 
 
 ;; Creating Messages and adding the sender.
 to-report create-message [performative]
- report (list performative (word "sender:" who) ) 
+  report (list performative (word "sender:" who) ) 
 end 
 
 to-report create-reply [performative msg]
-let msgOut 0
-    
- set msgOut create-message performative
- set msgOut add-receiver (get-sender msg) msgOut
- report msgOut
+  let msgOut 0
+  
+  set msgOut create-message performative
+  set msgOut add-receiver (get-sender msg) msgOut
+  report msgOut
 end 
 
 
