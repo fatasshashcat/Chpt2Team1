@@ -8,7 +8,7 @@
 ;---------------------------------------------------
 
 globals [
-  numPrisoners ; Number of prisoners
+  ;numPrisoners ; Number of prisoners
 ]
 ;---- Specific, local variables of citizen-agents
 citizens-own [

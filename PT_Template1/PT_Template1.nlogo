@@ -115,8 +115,13 @@ to setup
   set max-jailterm 10
 
   set numFreeCitizens 0
-
+  set numPrisoners 0
   set newarrest 0
+
+  set alfa -0.8
+  set L 1
+  set L0 (0.7 + random-float 0.2)
+
   ; setup of the environment:
   setup-environment ;
                     ; setup of all patches
@@ -126,6 +131,10 @@ to setup
   ;---- setup cops
   setup-cops
 
+  ;time section
+  ;initTime;
+
+  set dailyFlag false
 
   ; must be last in the setup-part:
   reset-ticks

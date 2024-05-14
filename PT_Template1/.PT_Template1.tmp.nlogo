@@ -42,7 +42,8 @@ globals [
   ;
   ; Global variables used by the citizen agents to adapt their local variables
   L;------------------------current global government legitimacy
-  L0; ----------------------
+  L0; ---------------------- initial legitimacy
+  dL ;-------------------------- difference in legitimacy
   newarrest;---------------number of newly arrested citizens during the time interval
   alfa;---------------------constant factor that determines how fast arresting episodes are forgotten
   glbFear;------------------value for the collective global fear amongst citizen agents
@@ -85,7 +86,7 @@ globals [
   locRestaurant; location of the restaurant
   locSocialEvents; location of the volunteer place
   numFreeCitizens
-  newarrest
+
 
 ]
 
@@ -114,8 +115,13 @@ to setup
   set max-jailterm 10
 
   set numFreeCitizens 0
-
+  set numPrisoners 0
   set newarrest 0
+
+  set alfa -0.8
+  set L 1
+  set L0 (0.7 + random-float 0.2)
+
   ; setup of the environment:
   setup-environment ;
                     ; setup of all patches
@@ -125,6 +131,7 @@ to setup
   ;---- setup cops
   setup-cops
 
+  ;ti
 
   ; must be last in the setup-part:
   reset-ticks
