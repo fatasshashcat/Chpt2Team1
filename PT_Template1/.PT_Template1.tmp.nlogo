@@ -42,8 +42,7 @@ globals [
   ;
   ; Global variables used by the citizen agents to adapt their local variables
   L;------------------------current global government legitimacy
-  L0; ---------------------- initial legitimacy
-  dL ;-------------------------- difference in legitimacy
+  L0; ----------------------
   newarrest;---------------number of newly arrested citizens during the time interval
   alfa;---------------------constant factor that determines how fast arresting episodes are forgotten
   glbFear;------------------value for the collective global fear amongst citizen agents
@@ -86,7 +85,7 @@ globals [
   locRestaurant; location of the restaurant
   locSocialEvents; location of the volunteer place
   numFreeCitizens
-
+  newarrest
 
 ]
 
