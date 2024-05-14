@@ -138,10 +138,26 @@ to go
   ;---- Agents to-go part -------------
   ; Cyclic execution of what the agents are supposed to do
 
+
+
+  ;-------------------------------------------------------------------------------------------
+  ; KAN INTE IMPLEMENTERAS FÖRRÄN VI GJORT ÄNDRINGAR I TIME-FILEN.
+
+  ;if dailyFlag [ 
+   ; count-new-arrests     set dL ((L - L0 - newarrest / num-citizens) * exp(alfa)) 
+    ;set L max (list 0 (min (list (L0 + dL) 1))) 
+    ;set dailyFlag false 
+  ;]
+
+ ; -------------------------------------------------------------------------------------------
+
+
+
   ask turtles [
     if breed = citizens [
       citizen_behavior  ; code as defined in the include-file "citizens.nls"
       task7_citizen_behavior
+      update_legetimicy
     ]
     if breed = cops [
       cop_behavior  ; code as defined in the include-file "cops.nls"
@@ -170,18 +186,22 @@ end
 
 
 to update_legetimicy
-
-end
-to count-free-citizens
-  let free-citizens (citizens with [(color = white or color = yellow) and not inPrison?])
-  set numFreeCitizens count free-citizens
-end
-
-to count-new-arrests
-  let new-arrest (citizens with [(color = red) and inPrison?])
-  set newarrest count new-arrest
+  count-new-arrests
+  set dL ((L - L0 - newarrest / num-citizens) * exp(alfa)) 
+  ;set L max 0 (min (L0 + dl) 1) 
+  set L max (list 0 (min (list (L0 + dL) 1))) 
+  countGlobalFear 
 end
 
+to count-new-arrests 
+  let new-arrest (citizens with [(color = red) and inPrison?]) 
+  set newarrest
+  count new-arrest 
+end  
+
+to countGlobalFear 
+  set glbFear (newarrest / num-citizens) 
+end 
 
 ; TIME FUNCTIONS
 to update-time-flags
